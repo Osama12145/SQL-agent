@@ -1,0 +1,32 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+    __start__([START]):::first
+    load_schema(load_schema)
+    generate_sql(generate_sql)
+    validate_sql(validate_sql)
+    repair_sql(repair_sql)
+    execute_sql(execute_sql)
+    decide_display(decide_display)
+    summarize_answer(summarize_answer)
+    fail(fail)
+    __end__([END]):::last
+    __start__ --> load_schema;
+    load_schema --> generate_sql;
+    generate_sql --> validate_sql;
+    validate_sql -. valid .-> execute_sql;
+    validate_sql -. invalid .-> repair_sql;
+    validate_sql -. attempts_exhausted .-> fail;
+    repair_sql --> validate_sql;
+    execute_sql -. success .-> decide_display;
+    execute_sql -. error .-> repair_sql;
+    execute_sql -. attempts_exhausted .-> fail;
+    decide_display --> summarize_answer;
+    summarize_answer --> __end__;
+    fail --> __end__;
+    classDef default fill:#eef4f8,stroke:#486270,color:#14252e,line-height:1.2
+    classDef first fill:#ffffff,stroke:#2f6f64,color:#14252e
+    classDef last fill:#d9eee8,stroke:#2f6f64,color:#14252e
