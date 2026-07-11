@@ -26,6 +26,8 @@ def clean_sql(sql: str) -> str:
 
 
 def validate_select_sql(sql: str) -> tuple[bool, str | None, str | None]:
+    # This is a readable demo policy, not a complete SQL parser or production
+    # security boundary. Production adds SQL parsing, database roles, and resource limits.
     cleaned = clean_sql(sql)
     lowered = cleaned.lower()
 
@@ -50,5 +52,6 @@ def validate_select_sql(sql: str) -> tuple[bool, str | None, str | None]:
 def ensure_limit(sql: str, limit: int = 100) -> str:
     if re.search(r"\blimit\s+\d+\b", sql, flags=re.IGNORECASE):
         return sql
-    # Bounding returned rows keeps the API response and dashboard predictable.
+    # LIMIT bounds the dashboard payload, but it does not cap database work.
+    # Production also needs query timeouts and database-level cost controls.
     return f"{sql} LIMIT {limit}"

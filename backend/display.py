@@ -30,7 +30,8 @@ def decide_display(
             "reason": "A single numeric result is clearer as a KPI.",
         }
 
-    # Intent is useful, but shape validation prevents empty or misleading charts.
+    # The hint captures user intent, but actual rows are more reliable. Accept it
+    # only when its chart type and axes match the returned result shape.
     if hint and _hint_matches_shape(hint, columns, numeric_columns, date_columns, text_columns):
         return {
             "chart_type": hint["chart_type"],
@@ -58,6 +59,8 @@ def decide_display(
             "reason": "Category plus numeric data is best shown as a bar chart.",
         }
 
+    # A table is the lossless fallback when the result does not match a safe,
+    # supported chart shape.
     return _table("The result shape is safest to display as a table.")
 
 

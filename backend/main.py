@@ -26,7 +26,9 @@ def query(request: QueryRequest) -> dict:
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
-    # Provider failures are not repairable SQL errors, so handle them at the API edge.
+    # SQL failures stay inside AgentState because the graph can repair them.
+    # Provider or configuration failures have no SQL to repair, so FastAPI reports
+    # them as service-level errors at the API boundary.
     try:
         final_state = agent.invoke({"question": question, "attempts": 0})
     except RuntimeError as exc:

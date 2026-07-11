@@ -28,6 +28,8 @@ def generate_sql_node(state: AgentState) -> AgentState:
 def validate_sql_node(state: AgentState) -> AgentState:
     is_valid, reason, safe_sql = validate_select_sql(state.get("sql") or "")
     if not is_valid:
+        # Keep validation failures in state so the graph, not this node, decides
+        # whether to repair the SQL or return a controlled failure.
         return {"error": reason}
     return {"sql": safe_sql, "error": None}
 
@@ -54,6 +56,8 @@ def execute_sql_node(state: AgentState) -> AgentState:
     try:
         rows, columns = execute_select(state["sql"] or "")
     except Exception as exc:
+        # Convert database failures into state so they follow the same bounded repair
+        # policy and user-feedback path as validation failures.
         return {"error": str(exc)}
 
     return {
@@ -90,6 +94,8 @@ def fail_node(state: AgentState) -> AgentState:
 
 
 def route_after_validation(state: AgentState) -> str:
+    # Validation and execution have different success destinations, but share one
+    # error policy: repair while attempts remain, otherwise end with a clear failure.
     if not state.get("error"):
         return "execute_sql"
     if state.get("attempts", 0) < MAX_REPAIR_ATTEMPTS:
@@ -117,13 +123,14 @@ def build_graph():
     graph.add_node("summarize_answer", summarize_answer_node)
     graph.add_node("fail", fail_node)
 
-    # Loading schema inside the graph keeps all LLM context visible in AgentState.
+    # Schema stays in AgentState instead of hidden process configuration, so each
+    # graph run shows exactly what database context the LLM used.
     graph.add_edge(START, "load_schema")
     graph.add_edge("load_schema", "generate_sql")
     graph.add_edge("generate_sql", "validate_sql")
 
-    # Validation and execution fail for different reasons, but both SQL failures
-    # can reuse one repair node before returning to the same safety check.
+    # Validation and execution fail for different reasons, but both failures can
+    # reuse one repair node before returning to the same safety check.
     graph.add_conditional_edges(
         "validate_sql",
         route_after_validation,
@@ -133,6 +140,8 @@ def build_graph():
             "fail": "fail",
         },
     )
+    # Repair produces new LLM output, not trusted SQL. Route it through validation
+    # again rather than directly to execution, so every query crosses the same safety gate.
     graph.add_edge("repair_sql", "validate_sql")
     graph.add_conditional_edges(
         "execute_sql",

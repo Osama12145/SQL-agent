@@ -21,13 +21,17 @@ def connect_read_only() -> sqlite3.Connection:
             f"Database not found at {db_path}. Run `python data/seed.py` first."
         )
 
-    # Read-only mode is defense in depth if a query ever passes validation by mistake.
+    # The validator is deliberately simple, so read-only mode is an independent,
+    # database-enforced boundary if application policy misses an edge case.
     connection = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
     connection.row_factory = sqlite3.Row
     return connection
 
 
 def load_schema() -> str:
+    # This small demo reloads metadata for every question so the LLM receives fresh,
+    # visible schema context. Production would cache it by migration version and
+    # invalidate the cache after schema changes.
     with connect_read_only() as connection:
         table_rows = connection.execute(
             """
