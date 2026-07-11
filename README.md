@@ -155,20 +155,6 @@ before validation or database execution.
   a clear service-level error at the API boundary.
 - An empty dashboard result is shown as user feedback rather than a broken chart.
 
-## Architecture Decisions
-
-| Decision | Why for this assignment | Production evolution |
-| --- | --- | --- |
-| LangGraph with explicit state | Validation, execution, repair, and display selection have meaningful branches. | Add tracing, evaluations, and persistence only when multi-turn workflows need them. |
-| Small TypedDict state | Fields are easy to trace and each node returns only the values it owns. | Keep the contract versioned as the workflow grows. |
-| SQLite | Seeded data and zero infrastructure make the project reproducible for a reviewer. | Use PostgreSQL with migrations, pooling, and a least-privilege read-only role. |
-| Load schema per question | The small database makes metadata lookup cheap and keeps fresh schema context visible in graph state. | Cache metadata by migration version and invalidate it after schema changes. |
-| Simple SELECT validator plus mode=ro | The validator is readable policy; SQLite read-only mode is an independent database-enforced boundary. | Add a SQL parser, database permissions, query timeouts, and resource controls. |
-| Schema-grounded scope decision | The model can refuse questions that require facts outside retail data instead of inventing a literal answer. | Add domain-specific evaluation cases and monitor scope-classification accuracy. |
-| Two repair attempts | Demonstrates self-correction while bounding latency and API cost. | Tune retries by error category, cost, and observability data. |
-| LLM display hint plus deterministic rules | The model captures intent, while real rows prevent empty or misleading charts. | Add evaluation data and confidence metrics for display choices. |
-| FastAPI and Streamlit | The API boundary stays explicit while the UI remains small and functional. | Replace or expand the frontend only when richer user workflows require it. |
-| OpenRouter structured output | Provider settings stay isolated and the graph avoids fragile text parsing. | Add provider fallback and model evaluation policies. |
 
 ## Project Structure
 
