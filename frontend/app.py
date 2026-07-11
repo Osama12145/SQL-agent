@@ -90,7 +90,8 @@ if st.button("Run query", type="primary"):
             df,
             x=x_column,
             y=y_column,
-            width="stretch",
+            # Boolean container sizing works across older Streamlit versions too.
+            use_container_width=True,
             height=360,
         )
     elif chart_type == "bar" and x_column and y_column:
@@ -98,14 +99,12 @@ if st.button("Run query", type="primary"):
             df,
             x=x_column,
             y=y_column,
-            horizontal=True,
-            sort=False,
-            width="stretch",
+            use_container_width=True,
             height=360,
         )
     else:
-        st.dataframe(df, width="stretch")
+        st.dataframe(df, use_container_width=True)
 
     if chart_type != "table":
         with st.expander("Raw rows"):
-            st.dataframe(df, width="stretch")
+            st.dataframe(df, use_container_width=True)
