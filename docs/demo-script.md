@@ -1,156 +1,225 @@
-# Demo Script
+# Demo Script For The Updated Deck
 
 ## Communication Goal
 
-Show that the project is a small, explainable agentic workflow, not just an
-LLM call that happens to return SQL.
+Show that the project is small by design, but architecturally complete: the LLM
+proposes SQL, while LangGraph makes validation, repair, execution, and display
+decisions explicit and bounded.
 
-The main sentence to remember:
+Remember this sentence:
 
 > The LLM proposes structured SQL and a display hint, while LangGraph controls
 > validation, repair, execution, and the final data-driven display decision.
 
-## Tools
+## Important Accuracy Fix
 
-- VS Code: keep the repository and README open.
-- PowerShell: run the API and Streamlit in separate terminals.
-- Browser: show the dashboard at `http://127.0.0.1:8501`.
-- GitHub: show the README and architecture image only after the live demo.
-- OpenRouter: configured through `.env`; never display the key while sharing the screen.
+Before presenting, replace the Slide 3 subtitle with:
 
-Do not add LangSmith, Postman, or extra tools to the live demo. The browser and
-two terminals are enough to prove the assignment.
+> The graph is defined in code; this diagram makes its nodes and routes easy to review.
+
+The project keeps its workflow diagram as Mermaid/SVG documentation alongside
+backend/graph.py. It is not automatically exported at runtime, so this wording
+is accurate and easy to defend in the interview.
 
 ## Before The Interview
 
-From the project directory:
+Run the API in one PowerShell window:
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-python data\seed.py
-uvicorn backend.main:app --reload
-```
+~~~powershell
+cd C:\tmp\agentic_sql_dashboard
+.\.venv\Scripts\python.exe data\seed.py
+.\.venv\Scripts\python.exe -m uvicorn backend.main:app --reload
+~~~
 
-In a second terminal:
+Run the dashboard in a second window:
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-streamlit run frontend\app.py
-```
+~~~powershell
+cd C:\tmp\agentic_sql_dashboard
+.\.venv\Scripts\streamlit.exe run frontend\app.py
+~~~
 
-Check `http://127.0.0.1:8000/health`, then open the Streamlit URL. Make sure
-`.env` contains the OpenRouter key but do not open the file during screen share.
+Check http://127.0.0.1:8000/health, then open http://127.0.0.1:8501. Keep
+terminals open but do not share them. Test the four sample questions before the
+meeting.
 
-## 90-Second Demo
+## Slide-By-Slide Speaking Script
 
-### Opening: 10 seconds
+### Slide 1: Opening
 
-Say:
+> Good morning. This is an Agentic SQL Dashboard built with LangGraph. A user
+> asks a business question in natural language, the system generates safe SQL,
+> executes it against a read-only SQLite database, and returns both an answer
+> and a dashboard view that fits the result.
 
-> I kept the UI intentionally minimal because the assignment prioritizes the
-> agent workflow. The system receives a natural-language question, generates
-> structured SQL, validates and executes it safely, then chooses a display based
-> on the actual result shape.
+> I intentionally kept the interface small. For this assignment, the important
+> part is making the agent workflow and its engineering decisions easy to see
+> and explain.
 
-### Query 1: KPI, 15 seconds
+### Slide 2: The End-To-End Contract
 
-Use:
+> This slide shows the complete contract. The user asks a natural-language
+> question. The LLM returns structured SQL, an explanation, and a display hint.
+> The SQL is validated, row-limited, and executed through a read-only
+> connection. Finally, the system returns a written answer and a display chosen
+> from the actual rows.
 
-```text
+> The UI is intentionally minimal because the engineering decisions are the
+> product being evaluated here.
+
+### Slide 3: Why LangGraph
+
+> I used LangGraph because this is not a single prompt followed by one database
+> call. It has state and meaningful branches. Validation can fail, execution can
+> fail, and both failures can be repaired before the workflow continues.
+
+> Each node has one responsibility: load the schema, generate SQL, validate it,
+> execute it, decide the display, and summarize the result. The conditional
+> routes make the recovery path visible instead of hiding it inside one large
+> function.
+
+> The repair loop is bounded by two attempts. That demonstrates self-correction
+> without allowing unlimited latency or API cost.
+
+### Slide 4: State
+
+> The shared state is deliberately small. It contains the user question and
+> schema, the SQL work, the returned rows and display result, and two control
+> fields: attempts and error.
+
+> Each node reads only the fields it needs and returns only the fields it owns.
+> LangGraph merges those partial updates, which makes the flow traceable and
+> keeps hidden memory out of the design.
+
+### Slide 5: SQL Safety
+
+> LLM-generated SQL should never be trusted directly, so I used defense in
+> depth. The first layer is readable application policy: one SELECT statement,
+> blocked write keywords, and a LIMIT of 100 rows.
+
+> The second layer is enforced by SQLite itself. The database is opened with
+> read-only mode, so it cannot be modified even if the validator misses an edge
+> case. EXPLAIN QUERY PLAN also lets execution planning errors enter the same
+> controlled repair route.
+
+### Slide 6: Display Decision
+
+> The LLM suggests a display type because it understands intent. For example,
+> compare suggests a bar chart, trend suggests a line chart, and total suggests
+> a KPI.
+
+> But the suggestion is not the final authority. After execution, the
+> decide_display node checks the real result shape. One numeric value becomes a
+> KPI, date plus number becomes a line chart, category plus number becomes a bar
+> chart, and detailed rows become a table. The Streamlit frontend only renders
+> that backend decision.
+
+### Slide 7: Transition To The Live Demo
+
+> The slides explain the decisions. I will now use these four questions to show
+> that the dashboard changes its primary display from the returned data.
+
+## Live Dashboard
+
+### KPI
+
+Question:
+
+~~~text
 What is the total revenue for completed orders?
-```
+~~~
 
 Say:
 
-> This returns one numeric cell, so the backend selects a KPI. The important
-> point is that the frontend does not decide this from the question text; it
-> renders the display specification returned by the graph.
+> This returns one numeric value, so the backend selects a KPI. The frontend did
+> not choose this from the words in the question; it received a display
+> specification after the SQL result was inspected.
 
-Open Generated SQL once and point out that the query is a SELECT with the
-expected joins and aggregation.
+### Line
 
-### Query 2: Line chart, 15 seconds
+Question:
 
-Use:
-
-```text
+~~~text
 Show monthly revenue for completed orders.
-```
+~~~
 
 Say:
 
-> This result has a month column and a numeric revenue column, so it is a time
-> series and becomes a line chart. The LLM can suggest line, but the
-> `decide_display` node verifies that the returned columns really support it.
+> This result has a month column and a numeric revenue column, so it becomes a
+> line chart. This is where the actual result confirms the LLM's trend hint.
 
-### Query 3: Bar chart, 15 seconds
+### Bar
 
-Use:
+Question:
 
-```text
+~~~text
 What are the top 5 products by revenue?
-```
+~~~
 
 Say:
 
-> This is a category-to-number comparison, so a bar chart is more useful than a
-> table. The result is limited to five rows, which also keeps the dashboard
-> readable.
+> Here the data compares product categories with a numeric revenue value, so a
+> bar chart is the most useful view. I will open Generated SQL once to show that
+> the executed query is visible for transparency and debugging.
 
-### Query 4: Table, 15 seconds
+### Table
 
-Use:
+Question:
 
-```text
+~~~text
 List each product with its category and price.
-```
+~~~
 
 Say:
 
-> This is a detailed multi-column result. A table preserves all fields instead
-> of hiding useful information inside a chart.
+> This is a detailed multi-column result. A table preserves the useful detail,
+> whereas a chart would hide it.
 
-### Architecture close: 20 seconds
+Do not force an error live. Say instead:
 
-Say:
+> If validation or execution failed, the graph would route through repair_sql,
+> return to validation, and stop with a clear failure after two repair attempts.
 
-> If SQL validation or execution fails, the graph routes to `repair_sql` and
-> then returns to validation. The repair count is bounded at two attempts, so
-> the workflow cannot loop forever or spend unlimited API calls. SQL is also
-> protected by a SELECT-only validator and a read-only SQLite connection.
+### Slide 8: Technology Choices
 
-Finish with:
+> Each technology was selected for the evaluation scope. FastAPI creates a small
+> typed boundary between the UI and graph. SQLite keeps the demo self-contained.
+> Streamlit provides input, KPIs, charts, and tables without a large frontend.
+> OpenRouter is OpenAI-compatible, so provider settings stay isolated in one
+> module while the project retains the standard ChatOpenAI client.
 
-> I chose this architecture because every node has one clear responsibility and
-> every important decision is visible in the state.
+### Slide 9: Honest Scope
 
-## What To Show In The Repository
+> This project is deliberately small, not presented as production-complete. The
+> current validator is a readable demo guard rather than a full SQL parser. For
+> production, I would add database permissions, a proper parser, resource
+> limits, authentication, auditing, schema caching, evaluations, and tracing.
 
-Open these files only when the reviewer asks:
+> The important point is that these are explicit next steps, not hidden gaps in
+> the current design.
 
-1. `backend/graph.py`: node registration and conditional routes.
-2. `backend/state.py`: the shared state and repair limit.
-3. `backend/validators.py`: SELECT-only validation and row limit.
-4. `backend/db.py`: read-only connection and schema loading.
-5. `backend/display.py`: actual result-shape rules.
-6. `README.md`: setup, workflow, and decisions.
+### Slide 10: Closing
 
-## If Something Fails
+> To summarize: the LLM proposes structured SQL and a display hint, while
+> LangGraph controls validation, repair, execution, and the final data-driven
+> display decision. I kept every current node small enough to explain, test, and
+> improve independently.
 
-Do not improvise a complex recovery during the interview. Say:
+## If A Reviewer Asks For Code
 
-> The API boundary reports provider or configuration failures separately from
-> SQL failures. SQL failures are repairable inside the graph; provider failures
-> are returned as a clear service error.
+Open only the file that answers the question:
 
-Then check `/health`, the API terminal, and that `OPENROUTER_API_KEY` exists in
-`.env`. Never reveal the key on screen.
+1. backend/graph.py: nodes and conditional routes.
+2. backend/state.py: shared fields and repair limit.
+3. backend/validators.py: SELECT-only policy and LIMIT.
+4. backend/db.py: read-only connection and schema loading.
+5. backend/display.py: result-shape rules.
+6. README.md: setup and architectural decisions.
 
 ## Presentation Rules
 
-- Start with the working dashboard, not the code.
-- Use four questions to show four display types.
-- Expand Generated SQL only once; do not read every line aloud.
-- Explain one architectural decision after the result it affects.
-- Let the reviewer ask for deeper code details instead of opening every file.
-- Keep the live demo under two minutes, then move to architecture questions.
+- Present Slides 1 to 7, then the dashboard, then Slides 8 to 10.
+- Keep the live demo under two minutes.
+- Open Generated SQL once only.
+- Do not show .env, terminals, or every source file.
+- If a provider error occurs, explain it as a service failure rather than a
+  repairable SQL error, then continue with the prepared architecture explanation.
