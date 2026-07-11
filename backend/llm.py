@@ -18,7 +18,17 @@ class DisplayHintModel(BaseModel):
 
 
 class SQLGenerationModel(BaseModel):
-    sql: str
+    answerable: bool = Field(
+        description="Whether the question can be answered only from the provided database schema."
+    )
+    unavailable_reason: str | None = Field(
+        default=None,
+        description="Brief reason when the available database cannot answer the question.",
+    )
+    sql: str | None = Field(
+        default=None,
+        description="One SQLite SELECT query when answerable is true; otherwise null.",
+    )
     explanation: str
     display_hint: DisplayHintModel = Field(default_factory=DisplayHintModel)
 

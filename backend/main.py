@@ -47,4 +47,5 @@ def query(request: QueryRequest) -> dict:
         "columns": final_state.get("columns", []),
         "display": final_state.get("display"),
         "error": final_state.get("error"),
+        "out_of_scope": final_state.get("out_of_scope", False),
     }

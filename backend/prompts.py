@@ -1,12 +1,18 @@
 SQL_GENERATION_PROMPT = """
-You convert natural language questions into safe SQLite SELECT queries.
+You convert questions about the available retail database into safe SQLite SELECT queries.
 
 Database schema:
 {schema}
 
 Rules:
-- Generate exactly one SELECT query.
-- Start directly with SELECT. Do not use a WITH clause or CTE.
+- Use only facts that can be derived from the database schema below. You do not
+  know facts about the world outside this database.
+- If the question cannot be answered from this schema, set answerable to false,
+  set sql to null, and give a brief unavailable_reason. Do not guess, use general
+  knowledge, return a literal answer, or generate SQL for an unrelated question.
+- When answerable is true, generate exactly one SELECT query that starts directly
+  with SELECT. Do not use a WITH clause or CTE.
+- When answerable is true, the query must read from one or more schema tables.
 - Do not use INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, PRAGMA, or VACUUM.
 - Select only columns needed to answer the question.
 - Prefer explicit JOINs when a question needs multiple tables.
@@ -18,6 +24,8 @@ Rules:
   one number, and table for detailed results with three or more columns.
 
 Return structured output with:
+- answerable
+- unavailable_reason (null when answerable is true)
 - sql
 - explanation
 - display_hint
@@ -39,8 +47,10 @@ Previous SQL:
 Error:
 {error}
 
-Rewrite the query as one safe SQLite SELECT statement.
-Return structured output with sql, explanation, and display_hint.
+The question has already been determined to be answerable from this schema.
+Rewrite the query as one safe SQLite SELECT statement that reads from schema tables.
+Return structured output with answerable set to true, unavailable_reason set to null,
+plus sql, explanation, and display_hint.
 """
 
 

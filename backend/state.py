@@ -26,6 +26,8 @@ class DisplaySpec(TypedDict, total=False):
 class AgentState(TypedDict, total=False):
     question: str
     schema: str
+    out_of_scope: bool
+    unavailable_reason: Optional[str]
     sql: Optional[str]
     sql_explanation: Optional[str]
     display_hint: Optional[DisplayHint]

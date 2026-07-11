@@ -7,6 +7,7 @@ graph TD;
     __start__([START]):::first
     load_schema(load_schema)
     generate_sql(generate_sql)
+    out_of_scope(out_of_scope)
     validate_sql(validate_sql)
     repair_sql(repair_sql)
     execute_sql(execute_sql)
@@ -16,7 +17,9 @@ graph TD;
     __end__([END]):::last
     __start__ --> load_schema;
     load_schema --> generate_sql;
-    generate_sql --> validate_sql;
+    generate_sql -. answerable .-> validate_sql;
+    generate_sql -. outside_schema .-> out_of_scope;
+    out_of_scope --> __end__;
     validate_sql -. valid_SQL .-> execute_sql;
     validate_sql -. invalid_SQL .-> repair_sql;
     validate_sql -. retry_limit_reached .-> fail;

@@ -63,6 +63,10 @@ if st.button("Run query", type="primary"):
     st.subheader("Answer")
     st.write(result.get("answer") or "No answer returned.")
 
+    if result.get("out_of_scope"):
+        st.info("No SQL was executed because this question is outside the available retail database.")
+        st.stop()
+
     with st.expander("Generated SQL"):
         st.code(result.get("sql") or "", language="sql")
         if result.get("sql_explanation"):

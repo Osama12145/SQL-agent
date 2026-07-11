@@ -38,6 +38,15 @@ def validate_select_sql(sql: str) -> tuple[bool, str | None, str | None]:
     if not re.match(r"^select\b", lowered):
         return False, "Only SELECT queries are allowed in this demo.", None
 
+    # A literal-only SELECT can execute without using the retail data and turn an
+    # LLM guess into a convincing answer. Every supported question must read tables.
+    if not re.search(r"\bfrom\s+[a-z_][a-z0-9_]*\b", lowered):
+        return (
+            False,
+            "The generated SQL must read from the available retail database.",
+            None,
+        )
+
     if ";" in cleaned:
         return False, "Only one SQL statement is allowed.", None
 

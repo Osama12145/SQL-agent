@@ -11,6 +11,7 @@ and explain.
 ## What It Demonstrates
 
 - Natural-language question to structured SQL.
+- Schema-grounded refusal for questions the retail database cannot answer.
 - Schema-aware SQL generation and bounded SQL repair.
 - Read-only SQLite query execution.
 - A dynamic primary dashboard element: KPI, line chart, bar chart, or table.
@@ -84,7 +85,7 @@ http://127.0.0.1:8000/health.
 | Execute database queries | Validated SELECT SQL runs against a seeded SQLite database opened read-only. |
 | Deliver results to the user | FastAPI returns answer, SQL, rows, columns, display metadata, and error details. |
 | Dynamically adjust dashboard elements | The backend returns KPI, line, bar, or table metadata from the actual result shape. |
-| Error handling and feedback | Invalid SQL and database errors enter bounded repair; provider failures return clear API errors. |
+| Error handling and feedback | Out-of-scope questions stop before SQL; invalid SQL and database errors enter bounded repair; provider failures return clear API errors. |
 | Clean, intentional code | Modules separate graph orchestration, database access, validation, display policy, API, and UI. |
 | Workflow and decisions documentation | This README, the workflow diagram, and architecture comments document the decisions. |
 
@@ -125,11 +126,11 @@ The workflow diagram source is kept in docs/agent-workflow.mmd alongside the
 implementation in backend/graph.py.
 
 1. Load current schema context.
-2. Generate structured SQL and a display hint.
-3. Validate the SQL before it reaches the database.
-4. Execute valid SQL through a read-only connection.
-5. Decide the display from actual result rows.
-6. Summarize the result for the user.
+2. Decide whether the question is answerable from the available schema.
+3. Return a clear answer without SQL when the required data is unavailable.
+4. Generate and validate SQL only for answerable questions.
+5. Execute valid SQL through a read-only connection.
+6. Decide the display from actual result rows, then summarize the result.
 
 Validation and execution errors have distinct causes but share one bounded
 recovery policy. When repair_sql produces replacement SQL, it returns to
@@ -139,10 +140,16 @@ and must cross the same safety boundary as the initial query.
 The graph stops after MAX_REPAIR_ATTEMPTS = 2, so a bad query cannot create an
 unbounded repair loop or unlimited model cost.
 
+Questions outside the retail schema are not treated as SQL errors. Retrying
+cannot create data that does not exist, so the graph ends with a clear response
+before validation or database execution.
+
 ## Error Handling And User Feedback
 
 - Invalid or unsafe SQL is stored as graph state and can be repaired twice.
 - Database planning or execution errors follow the same repair route.
+- Questions outside the available retail schema return a clear answer and never
+  execute SQL.
 - After the retry limit, the graph returns a controlled failure message.
 - OpenRouter or configuration failures have no SQL to repair, so FastAPI returns
   a clear service-level error at the API boundary.
@@ -157,6 +164,7 @@ unbounded repair loop or unlimited model cost.
 | SQLite | Seeded data and zero infrastructure make the project reproducible for a reviewer. | Use PostgreSQL with migrations, pooling, and a least-privilege read-only role. |
 | Load schema per question | The small database makes metadata lookup cheap and keeps fresh schema context visible in graph state. | Cache metadata by migration version and invalidate it after schema changes. |
 | Simple SELECT validator plus mode=ro | The validator is readable policy; SQLite read-only mode is an independent database-enforced boundary. | Add a SQL parser, database permissions, query timeouts, and resource controls. |
+| Schema-grounded scope decision | The model can refuse questions that require facts outside retail data instead of inventing a literal answer. | Add domain-specific evaluation cases and monitor scope-classification accuracy. |
 | Two repair attempts | Demonstrates self-correction while bounding latency and API cost. | Tune retries by error category, cost, and observability data. |
 | LLM display hint plus deterministic rules | The model captures intent, while real rows prevent empty or misleading charts. | Add evaluation data and confidence metrics for display choices. |
 | FastAPI and Streamlit | The API boundary stays explicit while the UI remains small and functional. | Replace or expand the frontend only when richer user workflows require it. |
@@ -184,5 +192,6 @@ unbounded repair loop or unlimited model cost.
 .\.venv\Scripts\python.exe -m pytest
 ~~~
 
-The test suite covers SQL validation, result-shape display rules, the graph
-happy path, and the SQL repair route without making real LLM calls.
+The test suite covers SQL validation, schema-scope rejection, result-shape
+display rules, the graph happy path, and the SQL repair route without making
+real LLM calls.

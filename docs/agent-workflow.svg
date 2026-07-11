@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="760" viewBox="0 0 1800 760" role="img" aria-labelledby="title desc">
   <title id="title">Agentic SQL workflow</title>
-  <desc id="desc">LangGraph workflow from schema loading through SQL generation, validation, execution, display selection, summarization, bounded repair, and failure.</desc>
+  <desc id="desc">LangGraph workflow from schema loading through scope checking, SQL generation, validation, execution, display selection, summarization, bounded repair, and failure.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#49626e"/>
@@ -27,7 +27,8 @@
   <!-- Main success path -->
   <path class="edge" d="M 140 202 L 180 202"/>
   <path class="edge" d="M 350 202 L 390 202"/>
-  <path class="edge" d="M 570 202 L 620 202"/>
+  <path class="conditional" d="M 570 202 L 620 202"/>
+  <text x="595" y="183" class="edge-label">answerable</text>
   <path class="conditional" d="M 800 202 L 880 202"/>
   <text x="840" y="183" class="edge-label">valid SQL</text>
   <path class="conditional" d="M 1060 202 L 1130 202"/>
@@ -36,6 +37,11 @@
   <path class="edge" d="M 1590 202 L 1650 202"/>
 
   <!-- Repair and failure routes -->
+  <path class="conditional" d="M 480 234 C 480 320 480 360 480 430"/>
+  <text x="555" y="330" class="edge-label">outside schema</text>
+  <path class="edge" d="M 580 462 C 900 640 1540 650 1700 234"/>
+  <text x="1080" y="620" class="edge-label">respond without SQL</text>
+
   <path class="conditional" d="M 685 234 C 685 330 760 360 815 430"/>
   <text x="704" y="330" class="edge-label">invalid SQL</text>
   <path class="conditional" d="M 960 234 C 960 330 910 370 875 430"/>
@@ -58,6 +64,9 @@
 
   <rect class="node" x="390" y="170" width="180" height="64" fill="#eaf1fb" stroke="#4c6d97"/>
   <text x="480" y="203" class="node-label">generate_sql</text>
+
+  <rect class="node" x="390" y="430" width="190" height="64" fill="#fff4e5" stroke="#9b6a2e"/>
+  <text x="485" y="463" class="node-label">out_of_scope</text>
 
   <rect class="node" x="620" y="170" width="180" height="64" fill="#fff4e5" stroke="#9b6a2e"/>
   <text x="710" y="203" class="node-label">validate_sql</text>

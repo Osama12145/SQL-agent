@@ -17,12 +17,41 @@ def load_schema_node(state: AgentState) -> AgentState:
 
 def generate_sql_node(state: AgentState) -> AgentState:
     result = generate_sql(state["question"], state["schema"])
+    if not result.answerable:
+        return {
+            "out_of_scope": True,
+            "unavailable_reason": result.unavailable_reason,
+            "error": None,
+        }
+
     return {
+        "out_of_scope": False,
         "sql": result.sql,
         "sql_explanation": result.explanation,
         "display_hint": result.display_hint.model_dump(exclude_none=True),
         "error": None,
     }
+
+
+def out_of_scope_node(state: AgentState) -> AgentState:
+    # A schema mismatch is a valid refusal, not malformed SQL to repair. Return a
+    # clear answer without asking the model again or touching the database.
+    reason = state.get("unavailable_reason") or (
+        "The available retail database does not contain that information."
+    )
+    return {
+        "answer": "I can only answer questions using the available retail database. "
+        + reason,
+        "rows": [],
+        "columns": [],
+        "error": None,
+    }
+
+
+def route_after_generation(state: AgentState) -> str:
+    if state.get("out_of_scope"):
+        return "out_of_scope"
+    return "validate_sql"
 
 
 def validate_sql_node(state: AgentState) -> AgentState:
@@ -116,6 +145,7 @@ def build_graph():
 
     graph.add_node("load_schema", load_schema_node)
     graph.add_node("generate_sql", generate_sql_node)
+    graph.add_node("out_of_scope", out_of_scope_node)
     graph.add_node("validate_sql", validate_sql_node)
     graph.add_node("repair_sql", repair_sql_node)
     graph.add_node("execute_sql", execute_sql_node)
@@ -127,7 +157,17 @@ def build_graph():
     # graph run shows exactly what database context the LLM used.
     graph.add_edge(START, "load_schema")
     graph.add_edge("load_schema", "generate_sql")
-    graph.add_edge("generate_sql", "validate_sql")
+    # Retrying cannot create data that is absent from the schema, so out-of-scope
+    # questions end clearly before SQL validation or execution.
+    graph.add_conditional_edges(
+        "generate_sql",
+        route_after_generation,
+        {
+            "out_of_scope": "out_of_scope",
+            "validate_sql": "validate_sql",
+        },
+    )
+    graph.add_edge("out_of_scope", END)
 
     # Validation and execution fail for different reasons, but both failures can
     # reuse one repair node before returning to the same safety check.

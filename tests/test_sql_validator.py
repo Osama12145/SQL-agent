@@ -25,6 +25,14 @@ def test_blocks_multiple_statements():
     assert sql is None
 
 
+def test_blocks_select_that_does_not_read_retail_data():
+    is_valid, reason, sql = validate_select_sql("SELECT 'Riyadh' AS answer")
+
+    assert is_valid is False
+    assert "must read from" in reason
+    assert sql is None
+
+
 def test_allows_select_on_multiple_lines():
     is_valid, reason, sql = validate_select_sql("SELECT\nname\nFROM products")
 
