@@ -86,7 +86,7 @@ http://127.0.0.1:8000/health.
 | Dynamically adjust dashboard elements | The backend returns KPI, line, bar, or table metadata from the actual result shape. |
 | Error handling and feedback | Invalid SQL and database errors enter bounded repair; provider failures return clear API errors. |
 | Clean, intentional code | Modules separate graph orchestration, database access, validation, display policy, API, and UI. |
-| Workflow and decisions documentation | This README, the workflow diagram, architecture comments, demo script, and interview notes document the decisions. |
+| Workflow and decisions documentation | This README, the workflow diagram, and architecture comments document the decisions. |
 
 ## Sample Questions
 
@@ -177,10 +177,6 @@ unbounded repair loop or unlimited model cost.
 - tests/: validator, display, and graph-routing tests.
 - docs/agent-workflow.svg: workflow visual used above.
 - docs/images/: dashboard screenshots used in the worked example.
-- docs/demo-script.md: slide-by-slide English demo script.
-- docs/demo-guide-ar.md: Arabic demo preparation guide.
-- docs/interview-qa.md: expected technical interview questions and answers.
-- outputs/agentic-sql-interview.pptx: interview slide deck.
 
 ## Tests
 
