@@ -12,7 +12,8 @@
       .title { font: 600 32px "Segoe UI", Arial, sans-serif; fill: #16252c; }
       .subtitle { font: 400 18px "Segoe UI", Arial, sans-serif; fill: #5a6b73; }
       .node-label { font: 600 18px "Segoe UI", Arial, sans-serif; fill: #16252c; text-anchor: middle; dominant-baseline: middle; }
-      .edge-label { font: 500 15px "Segoe UI", Arial, sans-serif; fill: #5a6b73; text-anchor: middle; paint-order: stroke; stroke: #ffffff; stroke-width: 6px; stroke-linejoin: round; }
+      /* Keep labels plain: PowerPoint and some browsers can hide stroked SVG text when copied. */
+      .edge-label { font: 600 15px "Segoe UI", Arial, sans-serif; fill: #314a57; text-anchor: middle; }
       .edge { fill: none; stroke: #49626e; stroke-width: 2.5; marker-end: url(#arrow); }
       .conditional { fill: none; stroke: #a34a44; stroke-width: 2.5; stroke-dasharray: 8 7; marker-end: url(#arrow-error); }
       .node { stroke-width: 2; rx: 8; }
@@ -28,7 +29,7 @@
   <path class="edge" d="M 350 202 L 390 202"/>
   <path class="edge" d="M 570 202 L 620 202"/>
   <path class="conditional" d="M 800 202 L 880 202"/>
-  <text x="840" y="183" class="edge-label">valid</text>
+  <text x="840" y="183" class="edge-label">valid SQL</text>
   <path class="conditional" d="M 1060 202 L 1130 202"/>
   <text x="1095" y="183" class="edge-label">success</text>
   <path class="edge" d="M 1320 202 L 1380 202"/>
@@ -36,16 +37,16 @@
 
   <!-- Repair and failure routes -->
   <path class="conditional" d="M 685 234 C 685 330 760 360 815 430"/>
-  <text x="704" y="330" class="edge-label">invalid</text>
+  <text x="704" y="330" class="edge-label">invalid SQL</text>
   <path class="conditional" d="M 960 234 C 960 330 910 370 875 430"/>
-  <text x="958" y="332" class="edge-label">SQL error</text>
+  <text x="958" y="332" class="edge-label">execution error</text>
   <path class="edge" d="M 760 462 C 600 462 565 310 650 234"/>
   <text x="616" y="405" class="edge-label">revalidate</text>
 
   <path class="conditional" d="M 770 234 C 850 350 1100 340 1210 430"/>
-  <text x="1000" y="373" class="edge-label">retry limit</text>
+  <text x="1000" y="373" class="edge-label">retry limit reached</text>
   <path class="conditional" d="M 1020 234 C 1080 315 1245 340 1260 430"/>
-  <text x="1160" y="305" class="edge-label">retry limit</text>
+  <text x="1160" y="305" class="edge-label">retry limit reached</text>
   <path class="edge" d="M 1340 462 C 1580 462 1700 350 1700 234"/>
 
   <!-- Nodes -->
